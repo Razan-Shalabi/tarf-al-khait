@@ -31,14 +31,11 @@ This was confirmed through interviews with employees at Ramallah and Al-Bireh mu
 | **ليش توقفت** — Service Clock | Why the clock is paused — a written reason, not silence |
 | **مين يتدخل** — Escalation | Who is automatically notified before the deadline is missed |
 
-Designed to sit on top of existing e-government infrastructure (حكومتي, municipal e-service portals) rather than replace it.
-
 ## Features
 
-- **Citizen portal** — service catalog (26 real Beitunia municipal services), request submission, live tracking, notifications, profile, direct department inquiries.
+- **Citizen portal** — service catalog (26 municipal services), request submission, live tracking, notifications, profile, direct department inquiries.
 - **Employee workspace** (per department) — task queue, case actions (advance / pause with reason / notes), walk-in intake for citizens who didn't apply online.
 - **Manager dashboard** — live overview, department delay alerts with reply tracking, service & route builder, ability to create a transaction for any citizen.
-- **Real-time sync** across browser tabs/devices via `BroadcastChannel` + `localStorage`.
 
 Single self-contained HTML file — no build step, no server, no install.
 
