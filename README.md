@@ -4,13 +4,6 @@
 
 <br/>
 
-<a href="https://taraf-al-khait.netlify.app/"><img src="https://img.shields.io/badge/LIVE%20DEMO-6B1E22?style=for-the-badge&logo=netlify&logoColor=white" alt="Live demo"/></a>
-<img src="https://img.shields.io/badge/HACKATHON-WINNER-C9962E?style=for-the-badge" alt="Hackathon winner"/>
-<img src="https://img.shields.io/badge/REACT-18-4A4A30?style=for-the-badge&logo=react&logoColor=white" alt="React 18"/>
-<img src="https://img.shields.io/badge/RTL-ARABIC-6B1E22?style=for-the-badge" alt="Arabic RTL"/>
-
-<br/>
-
 [Overview](#overview) · [Problem](#problem) · [Solution](#solution) · [Features](#features) · [Screenshots](#screenshots) · [Demo accounts](#demo-accounts)
 
 </div>
