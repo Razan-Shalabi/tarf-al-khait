@@ -4,7 +4,7 @@
 
 <br/>
 
-[Overview](#overview) · [Problem](#problem) · [Solution](#solution) · [Features](#features) · [Screenshots](#screenshots) · [Demo accounts](#demo-accounts)
+[**Live demo**](https://taraf-al-khait.netlify.app/) · [Problem](#problem) · [Solution](#solution)
 
 </div>
 
