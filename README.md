@@ -76,7 +76,7 @@ Password `1234` for every account.
 
 ## Tech stack
 
-React 18 + Babel Standalone (in-browser JSX compilation, no build tooling), `BroadcastChannel` + `localStorage` for real-time cross-tab sync.
+React 18 + Babel Standalone (in-browser JSX compilation, no build tooling).
 
 ## Repo structure
 
