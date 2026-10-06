@@ -88,7 +88,6 @@ app/            product source — app/index.html
 docs/           deployment build (served by Netlify)
 pitch-deck/     final pitch deck
 assets/         logo, screenshots
-archive/        earlier pitch deck drafts
 ```
 
 ## Team
