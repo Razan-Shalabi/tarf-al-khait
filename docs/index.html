@@ -291,6 +291,40 @@ label.field-label{display:block; font-size:12.5px; font-weight:700; color:var(--
   .section-title{font-size:20px;}
   .modal-body{padding:16px;}
 }
+
+/* ===== Chatbot (citizen assistant) ===== */
+.chat-fab{position:fixed; left:22px; bottom:22px; z-index:150; width:58px; height:58px; border-radius:50%; background:var(--maroon); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 28px -8px rgba(78,21,25,.55); transition:.15s;}
+.chat-fab:hover{background:var(--maroon-dark); transform:translateY(-2px);}
+.chat-panel{position:fixed; left:22px; bottom:92px; z-index:150; width:380px; max-width:calc(100vw - 24px); height:560px; max-height:calc(100vh - 116px); background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:0 24px 60px -16px rgba(60,40,20,.38); display:flex; flex-direction:column; overflow:hidden;}
+.chat-head{display:flex; align-items:center; gap:10px; padding:13px 15px; background:var(--maroon); color:#fff;}
+.chat-av{width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.chat-x{background:rgba(255,255,255,.14); border:none; color:#fff; width:30px; height:30px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+.chat-body{flex:1; overflow-y:auto; padding:14px 13px; background:var(--cream-soft); display:flex; flex-direction:column; gap:9px;}
+.chat-row{display:flex;}
+.chat-row.user{justify-content:flex-start;}
+.chat-row.bot{justify-content:flex-end;}
+.chat-bubble{max-width:88%; padding:9px 13px; border-radius:14px; font-size:13.5px; line-height:1.65;}
+.chat-bubble.bot{background:#fff; border:1px solid var(--border); color:var(--ink); border-bottom-left-radius:4px;}
+.chat-bubble.user{background:var(--maroon); color:#fff; border-bottom-right-radius:4px;}
+.chat-tag{font-size:10.5px; font-weight:800; color:var(--olive-mid); margin-bottom:3px;}
+.chat-actions{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px;}
+.chat-act{background:var(--maroon-light); color:var(--maroon); border:1px solid #E7CFCF; border-radius:999px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;}
+.chat-act:hover{background:#EBD3D3;}
+.chat-chips{display:flex; gap:6px; overflow-x:auto; padding:8px 12px; border-top:1px solid var(--border); background:#fff; scrollbar-width:none;}
+.chat-chips::-webkit-scrollbar{display:none;}
+.chat-chip{flex-shrink:0; background:#fff; color:var(--ink-soft); border:1px solid var(--border); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;}
+.chat-chip:hover{border-color:var(--maroon); color:var(--maroon);}
+.chat-input{display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--border); background:#fff;}
+.chat-input input{flex:1; min-width:0; border:1.5px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13.5px; outline:none; background:var(--cream-soft);}
+.chat-input input:focus{border-color:var(--maroon);}
+.chat-send{width:40px; border:none; border-radius:10px; background:var(--maroon); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+.chat-send:disabled{opacity:.45; cursor:default;}
+.chat-foot{font-size:10.5px; color:var(--muted); text-align:center; padding:0 10px 8px; background:#fff;}
+.chat-dots{display:inline-flex; gap:4px; padding:2px 2px;}
+.chat-dots i{width:6px; height:6px; border-radius:50%; background:var(--muted); animation:chatdot 1s infinite;}
+.chat-dots i:nth-child(2){animation-delay:.15s;} .chat-dots i:nth-child(3){animation-delay:.3s;}
+@keyframes chatdot{0%,80%,100%{opacity:.25; transform:translateY(0);} 40%{opacity:1; transform:translateY(-3px);}}
+@media (max-width:520px){ .chat-panel{left:12px; right:12px; width:auto; bottom:86px;} .chat-fab{left:14px; bottom:16px;} }
 </style>
 </head>
 <body>
@@ -1367,6 +1401,287 @@ const QUICK_LINKS = [
   {label:'رخص البناء', icon:'fileCheck', category:'eng'},
 ];
 
+// ===================== CHATBOT — مساعد المواطن =====================
+// هجين: محرك محلي (بيجاوب من بيانات المواطن والكتالوج بدون إنترنت) + نموذج ذكاء اصطناعي اختياري
+// عبر دالة Netlify (المفتاح ما بيطلع للمتصفح أبدًا). لو الدالة مش متوفرة، بنرجع للمحرك المحلي.
+const CHAT_ENDPOINT = '/.netlify/functions/chat';
+
+function chatNorm(s){
+  return String(s||'')
+    .replace(/[٠-٩]/g, d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[ً-ْـ]/g,'')
+    .replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه')
+    .replace(/[؟?!.,،:؛"«»()#\-_/]/g,' ')
+    .replace(/\s+/g,' ').trim().toLowerCase();
+}
+const CHAT_STOP = new Set(['كيف','شو','ايش','وين','متي','كم','هل','ما','ماذا','من','في','علي','عن','الي','مع','بدي','اريد','احتاج','لو','ممكن','اذا','هاي','هاد','هذا','هذه','لي','لدي','عندي','انا','يا','طلب','خدمه','معامله','معاملتي','معاملاتي','رسوم','مستندات','اوراق','مطلوبه','المطلوبه','مده','يوم','ايام','تكلف','تكلفه','سعر','وثائق','الاوراق','المستندات','الرسوم','المده','حول','بخصوص','تقديم','اقدم','ابي','خدمات','قائمه','متاحه','شو','ليش']);
+const CHAT_SYN = {'ترخيص':'رخصه','ماي':'مياه','ماء':'مياه','ساكن':'ساكن','اقامه':'ساكن','ديون':'ذمه','براءه':'ذمه'};
+function chatStem(t){ t = CHAT_SYN[t]||t; return t.replace(/^(وال|بال|لل|ال)/,''); }
+function chatTokens(s){ return chatNorm(s).split(' ').filter(t=>t.length>=2 && !CHAT_STOP.has(t)).map(chatStem).filter(t=>t.length>=3 && !CHAT_STOP.has(t)); }
+// تطابق على مستوى الكلمة (مش جزء من كلمة): «جديد» ما بتطابق «تجديد»
+function chatWordHit(qt, words){ return words.some(w=> w===qt || (qt.length>=4 && w.startsWith(qt)) || (w.length>=4 && qt.startsWith(w))); }
+
+// السياق اللي بنبنيه من بيانات المواطن — بدون رقم الهوية ولا الموبايل ولا الإيميل ولا العنوان
+function chatContext(citizen, apps, simNow){
+  return {
+    firstName: ((citizen&&citizen.name)||'').split(' ')[0],
+    now: fmtDateTime(simNow),
+    escalationFactor: SETTINGS.escalationFactor,
+    hours: 'الأحد–الخميس ٨:٠٠ ص — ٣:٠٠ م، الجمعة والسبت عطلة رسمية',
+    apps: apps.map(a=>{
+      const idx = activeStageIndex(a), st = a.stages[idx], t = timeRemainingLabel(a, simNow);
+      return {
+        id:a.id, number:a.reqNumber, service:svcName(a.serviceId),
+        statusKey:a.status, statusLabel:(STATUS[a.status]||{}).label||a.status,
+        stage: st ? st.citizenLabel : null, dept: st ? deptName(st.department) : null,
+        owner: st ? employeeInDept(st.department).name : null,
+        onHold: a.status==='on_hold', holdReason: (st && st.pauseReason) || null,
+        time: t ? t.label : null, overdue: !!(t && t.overdue),
+        escalated: isStageEscalated(a, simNow), ready: isReadyForPickup(a),
+        stepsDone: a.stages.filter(s=>s.status==='done').length, stepsTotal: a.stages.length,
+        publicNotes: a.notes.filter(n=>n.visibility==='public').slice(-2).map(n=>n.text),
+      };
+    }),
+    services: SERVICES.filter(isServiceActive).map(s=>({
+      id:s.id, name:s.name, fee:s.fee, currency:svcCurrency(s.currency), days:s.days,
+      docs:s.docs, desc:(s.desc||'').slice(0,160), steps:s.stepChain.map(x=>x.citizenLabel),
+    })),
+  };
+}
+
+function chatMatchServices(text, list){
+  const q = chatTokens(text); if(!q.length) return {best:null, ties:[]};
+  const scored = list.map(s=>{
+    const nameW = chatTokens(s.name), descW = chatTokens(s.desc||'');
+    const score = q.reduce((n,t)=> n + (chatWordHit(t, nameW) ? 2 : 0), 0) + q.reduce((n,t)=> n + (chatWordHit(t, descW) ? 0.5 : 0), 0);
+    return {s, score};
+  }).filter(x=>x.score>=2).sort((a,b)=>b.score-a.score);
+  if(!scored.length) return {best:null, ties:[]};
+  const top = scored[0].score, ties = scored.filter(x=>x.score===top).map(x=>x.s);
+  return {best: ties.length===1 ? ties[0] : null, ties};
+}
+function chatMatchApp(text, apps){
+  const num = (chatNorm(text).match(/\d{5}/)||[])[0];
+  if(num){ const a = apps.find(x=>String(x.number).endsWith(num)); if(a) return {best:a, ties:[a]}; }
+  const r = chatMatchServices(text, apps.map(a=>({name:a.service, desc:'', _app:a})));
+  return {best: r.best ? r.best._app : null, ties: r.ties.map(x=>x._app)};
+}
+
+function chatAppText(a){
+  const L = ['«'+a.service+'» #'+a.number, 'الحالة: '+a.statusLabel];
+  if(a.statusKey==='delivered') L.push('تم تسليمها. شكرًا لتعاملك مع البلدية.');
+  else if(a.statusKey==='cancelled') L.push('هذه المعاملة ملغاة.');
+  else{
+    if(a.stage) L.push('المرحلة الحالية: '+a.stage+'\nالجهة المسؤولة: '+a.dept+(a.owner?(' — '+a.owner):''));
+    L.push('التقدّم: '+a.stepsDone+' من '+a.stepsTotal+' مراحل');
+    if(a.onHold) L.push('متوقفة مؤقتًا'+(a.holdReason?(' — السبب: '+String(a.holdReason).replace(/[.\s]+$/,'')):'')+'. عدّاد الوقت موقوف إلى أن تُستأنف.');
+    else if(a.escalated) L.push('تأخرت عن مدتها المسموحة، وتم رفعها تلقائيًا إلى مدير البلدية.');
+    else if(a.overdue) L.push('تجاوزت مدتها المسموحة في هذه المرحلة، والدائرة منبَّهة.');
+    else if(a.time) L.push('الوقت: '+a.time+' في هذه المرحلة.');
+    if(a.ready) L.push('جاهزة للاستلام من خدمات الجمهور.');
+  }
+  return L.join('\n');
+}
+function chatDays(n){ n=Number(n)||0; return n===1?'يوم واحد' : n===2?'يومان' : (n>=3&&n<=10)?(n+' أيام') : (n+' يومًا'); }
+function chatSvcText(s){
+  const L = ['«'+s.name+'»'];
+  L.push('الرسوم: '+(s.fee>0 ? (s.fee+' '+s.currency) : 'بدون رسوم'));
+  L.push('المدة المتوقعة: حتى '+chatDays(s.days));
+  L.push('الأوراق المطلوبة:\n'+s.docs.map(d=>'• '+d).join('\n'));
+  L.push('مسار المعاملة: '+s.steps.join(' ← '));
+  return L.join('\n');
+}
+const chatOpenApp = a => ({type:'open_app', appId:a.id, label:'افتح «'+a.service+'»'});
+const chatOpenSvc = s => ({type:'open_svc', svcId:s.id, label:'صفحة الخدمة'});
+const chatAsk = t => ({type:'ask', text:t, label:t});
+
+// المحرك المحلي: بيرجّع {text, actions, fallback}
+function chatLocal(text, ctx){
+  const n = chatNorm(text), has = re => re.test(n);
+  const apps = ctx.apps, active = apps.filter(a=>!['delivered','cancelled'].includes(a.statusKey));
+  const svcM = chatMatchServices(text, ctx.services), appM = chatMatchApp(text, apps);
+
+  if(has(/^(مرحبا|اهلا|هلا|السلام|صباح|مساء|هاي|hi|hello)/) && n.split(' ').length<=4)
+    return {text:'أهلًا '+ctx.firstName+'! كيف بقدر أساعدك؟ بتقدر تسأل عن معاملاتك، أو عن الأوراق والرسوم والمدة لأي خدمة.', actions:[chatAsk('وين وصلت معاملاتي؟'), chatAsk('شو الأوراق المطلوبة؟')]};
+  if(has(/(شكرا|يسلمو|مشكور|تسلم)/))
+    return {text:'العفو! أنا هون لو احتجت أي شي.', actions:[]};
+  if(has(/(دوام|ساعات العمل|اوقات|متي تفتح|متي بتفتح|مفتوح)/))
+    return {text:'أوقات الدوام: '+ctx.hours+'.', actions:[]};
+  if(has(/(تصعيد|كيف بتشتغل|كيف يشتغل|شو يعني تاخير|نظام التاخير|بعد كم)/) && !appM.best)
+    return {text:'لكل مرحلة مدة محددة. إذا تجاوزتها المعاملة بتتنبّه الدائرة المسؤولة، وإذا وصل التأخير إلى '+ctx.escalationFactor+' ضعف المدة بتنرفع تلقائيًا إلى مدير البلدية ويوصلك إشعار. وإذا توقفت لسبب (مثل انتظار معاينة) بيوقف العدّاد والسبب بيظهر لك.', actions:[]};
+
+  // أسئلة عن تأخير/سبب
+  if(has(/(ليش|لماذا|سبب|متاخر|تاخر|تاخير|واقف|متوقف|علقت|معلق)/)){
+    const flagged = active.filter(a=>a.onHold||a.overdue||a.escalated);
+    const pick = appM.best ? [appM.best] : flagged;
+    if(pick.length)
+      return {text: pick.map(chatAppText).join('\n\n'), actions: pick.map(chatOpenApp).concat(pick.length===1&&!['delivered','cancelled'].includes(pick[0].statusKey)?[{type:'start_inquiry', appId:pick[0].id, label:'استفسر من الدائرة'}]:[])};
+    if(active.length) return {text:'معاملاتك الحالية ماشية ضمن المدة المسموحة، ولا في أي تأخير عليها حاليًا.', actions:[chatAsk('وين وصلت معاملاتي؟')]};
+  }
+
+  // استفسار/تواصل مع موظف
+  if(has(/(اتواصل|تواصل|ارسل استفسار|ابعت استفسار|كلم|اكلم|استفسر|اشتكي|شكوي|موظف)/) && !svcM.best){
+    if(active.length===1) return {text:'بقدر أوصّل استفسارك للدائرة المسؤولة عن «'+active[0].service+'». بدك أكتبه؟', actions:[{type:'start_inquiry', appId:active[0].id, label:'اكتب الاستفسار'}]};
+    if(active.length>1) return {text:'عن أي معاملة بدك تستفسر؟', actions: active.map(a=>({type:'start_inquiry', appId:a.id, label:'«'+a.service+'»'}))};
+    return {text:'ما عندك معاملات نشطة حاليًا لأوصّل استفسار عنها.', actions:[]};
+  }
+
+  // رسوم / مدة / أوراق لخدمة
+  const wantsFee = has(/(رسوم|كم تكلف|كلفه|تكلفه|سعر|مبلغ|بكم|كم بدفع)/);
+  const wantsDays = has(/(كم يوم|كم مده|المده|كم بتاخد|كم ياخد|متي بتخلص|متي تخلص|كم بياخد)/);
+  const wantsDocs = has(/(اوراق|مستندات|وثائق|مطلوب|احتاج|شو بدي|ايش بدي|لازم)/);
+  if((wantsFee||wantsDays||wantsDocs) && !(appM.best && !svcM.best && has(/معاملتي|معاملاتي/))){
+    if(svcM.best){
+      const s = svcM.best;
+      let t;
+      if(wantsFee && !wantsDocs && !wantsDays) t = '«'+s.name+'»\nالرسوم: '+(s.fee>0?(s.fee+' '+s.currency):'بدون رسوم');
+      else if(wantsDays && !wantsDocs && !wantsFee) t = '«'+s.name+'»\nالمدة المتوقعة: حتى '+chatDays(s.days);
+      else t = chatSvcText(s);
+      return {text:t, actions:[chatOpenSvc(s)]};
+    }
+    if(svcM.ties.length>1)
+      return {text:'قصدك أي خدمة بالتحديد؟', actions: svcM.ties.slice(0,5).map(s=>({type:'ask', text:s.name, label:s.name}))};
+    return {text:'لأي خدمة بدك تعرف؟ اكتب اسمها (مثل «شهادة ساكن» أو «رخصة بناء»)، أو تصفّح تبويب «خدمات البلدية».', actions:[]};
+  }
+
+  // كيف أقدّم
+  if(has(/(اقدم|تقديم|طلب جديد|ابدا طلب|كيف بقدم)/)){
+    if(svcM.best) return {text:'لتقديم «'+svcM.best.name+'» افتح صفحة الخدمة واضغط «تقديم طلب جديد».', actions:[chatOpenSvc(svcM.best)]};
+    return {text:'من تبويب «خدمات البلدية» اختر الخدمة، وبعدها اضغط «تقديم طلب جديد» واتبع الخطوات. اكتب اسم الخدمة وبفتحها لك.', actions:[]};
+  }
+
+  // قائمة الخدمات
+  if(has(/(شو الخدمات|الخدمات المتاحه|شو بتقدم|ايش الخدمات|قائمه الخدمات|الخدمات)/) && !svcM.best){
+    const cats = CATEGORIES.map(c=>'• '+c.name+' ('+ctx.services.filter(s=>(SERVICES.find(x=>x.id===s.id)||{}).category===c.id).length+')');
+    return {text:'خدمات البلدية حسب التصنيف:\n'+cats.join('\n')+'\nاكتب اسم الخدمة وبعطيك رسومها وأوراقها ومدتها.', actions:[]};
+  }
+
+  // معاملة محددة
+  if(appM.best && (has(/(معاملتي|وين|حاله|وصلت|متابعه|مسؤول|مين)/) || !svcM.best))
+    return {text:chatAppText(appM.best), actions:[chatOpenApp(appM.best)]};
+
+  // نظرة عامة
+  if(has(/(معاملاتي|معاملتي|وين وصلت|حاله|وضع|متابعه|وصلت|مسؤول|مين)/)){
+    if(!apps.length) return {text:'ما عندك معاملات مسجّلة حاليًا. بتقدر تقدّم طلب جديد من «خدمات البلدية».', actions:[]};
+    const lines = apps.map(a=>'• «'+a.service+'» #'+a.number+' — '+a.statusLabel+(a.stage&&!['delivered','cancelled'].includes(a.statusKey)?(' ('+a.stage+')'):''));
+    return {text:'معاملاتك:\n'+lines.join('\n')+'\nاختر معاملة لتفاصيلها.', actions: apps.map(chatOpenApp)};
+  }
+
+  // خدمة بدون سؤال محدد → بطاقة الخدمة
+  if(svcM.best) return {text:chatSvcText(svcM.best), actions:[chatOpenSvc(svcM.best)]};
+
+  return {fallback:true, text:'ما قدرت أفهم سؤالك بدقة. جرّب تسأل مثلًا:', actions:[chatAsk('وين وصلت معاملاتي؟'), chatAsk('شو الأوراق المطلوبة؟'), chatAsk('أوقات الدوام')]};
+}
+
+async function chatAskLLM(history, ctx){
+  if(typeof location==='undefined' || !/^https?:/.test(location.protocol)) throw new Error('no-server');
+  const ctrl = new AbortController(), timer = setTimeout(()=>ctrl.abort(), 9000);
+  try{
+    const r = await fetch(CHAT_ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:history, context:ctx}), signal:ctrl.signal});
+    if(!r.ok) throw new Error('http '+r.status);
+    const j = await r.json();
+    if(!j || typeof j.reply!=='string' || !j.reply.trim()) throw new Error('empty');
+    return j.reply.trim();
+  } finally { clearTimeout(timer); }
+}
+
+function CitizenChatbot({citizen, apps, simNow, onOpenApp, onOpenSvc}){
+  const {dispatch} = useStore();
+  const ctx = chatContext(citizen, apps, simNow);
+  const [open, setOpen] = useState(false);
+  const [msgs, setMsgs] = useState(()=>[{role:'bot', text:'أهلًا '+((citizen.name||'').split(' ')[0])+'! أنا مساعد «طرف الخيط». بساعدك تتابع معاملاتك، وتعرف الأوراق والرسوم والمدة لأي خدمة، وأوصّل استفسارك للدائرة المسؤولة.', actions:[]}]);
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [flow, setFlow] = useState(null);
+  const endRef = useRef(null);
+  useEffect(()=>{ if(open && endRef.current) endRef.current.scrollIntoView({block:'end'}); }, [msgs, busy, open]);
+
+  const pushBot = (text, actions, tag)=> setMsgs(m=>[...m, {role:'bot', text, actions:actions||[], tag}]);
+  const clearTransient = idx => setMsgs(m=>m.map((x,i)=> i===idx ? {...x, actions:x.actions.filter(a=>['open_app','open_svc','ask'].includes(a.type))} : x));
+
+  async function submit(raw){
+    const text = (raw!==undefined ? raw : input).trim();
+    if(!text || busy) return;
+    setInput('');
+    const history = [...msgs.map(m=>({role:m.role==='user'?'user':'assistant', content:m.text})), {role:'user', content:text}];
+    setMsgs(m=>[...m, {role:'user', text}]);
+
+    if(flow && flow.type==='inquiry'){
+      setFlow({type:'confirm', appId:flow.appId});
+      pushBot('هذا نص استفسارك:\n«'+text+'»\nبدك أرسله للدائرة المسؤولة؟', [{type:'send_inquiry', appId:flow.appId, text, label:'إرسال الآن'}, {type:'cancel', label:'إلغاء'}]);
+      return;
+    }
+    setBusy(true);
+    const res = chatLocal(text, ctx);
+    if(!res.fallback){
+      setTimeout(()=>{ pushBot(res.text, res.actions); setBusy(false); }, 350);
+      return;
+    }
+    try{
+      const reply = await chatAskLLM(history.slice(history.findIndex(h=>h.role==='user')).slice(-8), ctx);
+      pushBot(reply, [], 'مساعد ذكي');
+    }catch(e){
+      pushBot(res.text, res.actions);
+    }
+    setBusy(false);
+  }
+
+  function act(a, idx){
+    if(a.type==='ask'){ submit(a.text); return; }
+    if(a.type==='open_app'){ onOpenApp(a.appId); setOpen(false); return; }
+    if(a.type==='open_svc'){ const s = findService(a.svcId); if(s){ onOpenSvc(s); setOpen(false); } return; }
+    if(a.type==='start_inquiry'){
+      clearTransient(idx); setFlow({type:'inquiry', appId:a.appId});
+      pushBot('اكتب استفسارك هلأ، وبجهّزه لك قبل الإرسال.'); return;
+    }
+    if(a.type==='send_inquiry'){
+      clearTransient(idx); dispatch({type:'CITIZEN_INQUIRY', appId:a.appId, by:citizen.name, text:a.text}); setFlow(null);
+      const app = apps.find(x=>x.id===a.appId), st = app ? app.stages[activeStageIndex(app)] : null;
+      pushBot('تم إرسال استفسارك'+(st?(' إلى '+deptName(st.department)):'')+'. بتلاقي الرد على صفحة معاملتك، وبيوصلك إشعار.'); return;
+    }
+    if(a.type==='cancel'){ clearTransient(idx); setFlow(null); pushBot('تم الإلغاء.'); return; }
+  }
+
+  const chips = ['وين وصلت معاملاتي؟','شو الأوراق المطلوبة؟','كم الرسوم؟','ليش المعاملة متأخرة؟','أوقات الدوام'];
+  return (
+    <React.Fragment>
+      {open && (
+        <div className="chat-panel" role="dialog" aria-label="مساعد طرف الخيط">
+          <div className="chat-head">
+            <div className="chat-av"><Icon name="sparkle" size={16}/></div>
+            <div style={{flex:1, minWidth:0}}><div style={{fontWeight:800, fontSize:14}}>مساعد طرف الخيط</div><div style={{fontSize:11, opacity:.8}}>بيجاوب من بيانات معاملاتك</div></div>
+            <button className="chat-x" onClick={()=>setOpen(false)} aria-label="إغلاق"><Icon name="x" size={16}/></button>
+          </div>
+          <div className="chat-body">
+            {msgs.map((m,i)=>(
+              <div key={i} className={'chat-row '+m.role}>
+                <div className={'chat-bubble '+m.role}>
+                  {m.tag && <div className="chat-tag">{m.tag}</div>}
+                  <div style={{whiteSpace:'pre-wrap'}}>{m.text}</div>
+                  {m.actions && m.actions.length>0 && (
+                    <div className="chat-actions">{m.actions.map((a,j)=><button key={j} className="chat-act" onClick={()=>act(a,i)}>{a.label}</button>)}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {busy && <div className="chat-row bot"><div className="chat-bubble bot"><span className="chat-dots"><i/><i/><i/></span></div></div>}
+            <div ref={endRef}/>
+          </div>
+          <div className="chat-chips">{chips.map(c=><button key={c} className="chat-chip" onClick={()=>submit(c)}>{c}</button>)}</div>
+          <form className="chat-input" onSubmit={e=>{e.preventDefault(); submit();}}>
+            <input value={input} onChange={e=>setInput(e.target.value)} placeholder="اكتب سؤالك هون..." maxLength={400} disabled={busy}/>
+            <button type="submit" className="chat-send" disabled={busy||!input.trim()} aria-label="إرسال"><Icon name="send" size={16}/></button>
+          </form>
+          <div className="chat-foot">للمعلومات الرسمية راجع البلدية مباشرة.</div>
+        </div>
+      )}
+      <button className="chat-fab" onClick={()=>setOpen(o=>!o)} aria-label="مساعد طرف الخيط" title="مساعد طرف الخيط">
+        <Icon name={open?'x':'message'} size={24}/>
+      </button>
+    </React.Fragment>
+  );
+}
+
 function CitizenApp(){
   const {state} = useStore();
   const [tab, setTab] = useState('home');
@@ -1418,6 +1733,9 @@ function CitizenApp(){
       <SubNav tabs={tabs} active={(selectedApp||selectedSvc)?null:tab} onChange={(k)=>{ setTab(k); setCategoryFilter(null); setSelectedAppId(null); setSelectedSvc(null); }}/>
       <div className="page">{body}</div>
       {wizard}
+      <CitizenChatbot citizen={citizen} apps={myApps} simNow={simNow}
+        onOpenApp={(id)=>{ setSelectedSvc(null); setSelectedAppId(id); }}
+        onOpenSvc={(sv)=>{ setSelectedAppId(null); setSelectedSvc(sv); }}/>
     </React.Fragment>
   );
 }
