@@ -1007,6 +1007,11 @@ function reducer(state, action){
 function Field({label, hint, children}){
   return <div className="field"><label className="field-label">{label}</label>{children}{hint && <div style={{fontSize:11.5,color:'var(--muted)',marginTop:4}}>{hint}</div>}</div>;
 }
+function TestHint({label, value, extra}){
+  return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:6,background:'#FBF3DC',border:'1px dashed #C9A24B',borderRadius:6,padding:'3px 8px',color:'#6B1E22',fontWeight:600}}>
+    <span>🧪 {label}</span><b dir="ltr" style={{fontSize:13,letterSpacing:.3,color:'#2b2b2b'}}>{value}</b>{extra && <span style={{color:'var(--muted)',fontWeight:500}}>{extra}</span>}
+  </span>;
+}
 function Modal({title, onClose, children, wide}){
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1353,13 +1358,13 @@ function CitizenSignIn({onSwitch}){
     <form onSubmit={submit}>
       <h3 style={{marginTop:0, marginBottom:3, color:'var(--ink)', fontSize:21}}>مرحباً بك</h3>
       <div className="section-sub" style={{marginBottom:18}}>سجّل الدخول إلى حسابك</div>
-      <Field label="رقم الهوية">
+      <Field label="رقم الهوية" hint={<TestHint label="للتجربة اكتب:" value="900447821"/>}>
         <div style={{position:'relative'}}>
           <div style={{position:'absolute', right:12, top:12, color:'var(--muted)'}}><Icon name="user" size={16}/></div>
           <input value={nationalId} onChange={e=>setNationalId(e.target.value)} placeholder="900447821" required style={{paddingRight:36}}/>
         </div>
       </Field>
-      <Field label="كلمة المرور"><PasswordField value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></Field>
+      <Field label="كلمة المرور" hint={<TestHint label="للتجربة اكتب:" value="1234"/>}><PasswordField value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></Field>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18, fontSize:12.5}}>
         <label className="checkbox-row"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/>تذكرني</label>
         <a href="#" onClick={e=>{e.preventDefault(); dispatch({type:'TOAST_ONLY', msg:'تواصل مع إدارة النظام لإعادة تعيين كلمة المرور.'});}}>نسيت كلمة المرور؟</a>
@@ -1378,13 +1383,13 @@ function EmployeeSignIn({onSwitch}){
     <form onSubmit={submit}>
       <h3 style={{marginTop:0, marginBottom:3, color:'var(--ink)', fontSize:21}}>دخول الموظفين</h3>
       <div className="section-sub" style={{marginBottom:18}}>النظام الداخلي — حسابات الموظفين تُنشأ من قِبل إدارة النظام</div>
-      <Field label="اسم المستخدم">
+      <Field label="اسم المستخدم" hint={<TestHint label="للتجربة اكتب:" value="director" extra="(مدير النظام، كل الصلاحيات)"/>}>
         <div style={{position:'relative'}}>
           <div style={{position:'absolute', right:12, top:12, color:'var(--muted)'}}><Icon name="building" size={16}/></div>
           <input value={username} onChange={e=>setUsername(e.target.value)} required style={{paddingRight:36}}/>
         </div>
       </Field>
-      <Field label="كلمة المرور"><PasswordField value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></Field>
+      <Field label="كلمة المرور" hint={<TestHint label="للتجربة اكتب:" value="1234"/>}><PasswordField value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></Field>
       <button type="submit" className="btn btn-maroon btn-block" style={{marginTop:4}}>تسجيل الدخول<Icon name="arrowLeft" size={15}/></button>
       <div style={{display:'flex', alignItems:'center', gap:10, margin:'18px 0'}}><div style={{flex:1, height:1, background:'var(--border)'}}/><span style={{fontSize:11.5, color:'var(--muted)'}}>أو</span><div style={{flex:1, height:1, background:'var(--border)'}}/></div>
       <button type="button" className="btn btn-outline btn-block" onClick={onSwitch}><Icon name="user" size={15}/>رجوع لبوابة المواطن</button>
